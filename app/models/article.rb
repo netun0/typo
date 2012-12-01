@@ -42,7 +42,16 @@ class Article < Content
     this.has_many :published_trackbacks, :class_name => "Trackback", :order => "created_at ASC"
     this.has_many :published_feedback,   :class_name => "Feedback", :order => "created_at ASC"
   end
-
+  
+  def merge_with
+    return if params[:merge_with].nil?
+     @article = Article.find(params[:id])
+     if not current_user.admin? 
+      # redirect_to :action => 'index'
+       flash[:error] = _("Error, permission denied")
+       return
+     end
+  end
   has_and_belongs_to_many :tags
 
   before_create :set_defaults, :create_guid
@@ -407,6 +416,25 @@ class Article < Content
   def add_comment(params)
     comments.build(params)
   end
+  
+  def assoc_comments
+    Comment.find_by_article_id(self.id)
+  end
+  
+  def merge(target_index)
+    @current_article = Article.find(self.id)
+    @merge_article = Article.find(target_index)
+    @current_article.body += "#{@merge_article.body}"
+    @current_article.save!
+    @comments = Comment.find_all_by_article_id(target_index)
+    @comments.each do |comment|
+      comment.article_id = self.id
+      comment.save!
+    end
+    @merge_article.destroy
+    return true
+  end
+
 
   def add_category(category, is_primary = false)
     self.categorizations.build(:category => category, :is_primary => is_primary)

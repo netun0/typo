@@ -26,7 +26,18 @@ class Admin::ContentController < Admin::BaseController
   def new
     new_or_edit
   end
-
+  
+  def merge
+    @target = params[:merge_with]
+    @article = Article.find(params[:current])
+    if @article.merge(@target)
+      flash[:notice] = "Merge successful"
+    else
+      flash[:warn] = "Merge failed"
+    end
+    redirect_to :action => 'index'
+  end
+  
   def edit
     @article = Article.find(params[:id])
     unless @article.access_by? current_user
@@ -144,7 +155,7 @@ class Admin::ContentController < Admin::BaseController
     id = params[:article][:id] if params[:article] && params[:article][:id]
     @article = Article.get_or_build_article(id)
     @article.text_filter = current_user.text_filter if current_user.simple_editor?
-
+    
     @post_types = PostType.find(:all)
     if request.post?
       if params[:article][:draft]
